@@ -1,0 +1,63 @@
+services:
+  mssql:
+    #image: mcr.microsoft.com/azure-sql-edge:latest
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    cap_add: ["SYS_PTRACE"]
+    container_name: mssql
+    environment:
+      - "ACCEPT_EULA=1"
+      - "MSSQL_SA_PASSWORD=[vY5mKg=k9DYW3r*"
+    ports:
+      - 1433:1433
+    hostname: mssql
+  #zookeeper:
+  #  image: confluentinc/cp-zookeeper:7.3.0
+  #  hostname: zookeeper
+  #  container_name: zookeeper
+  #  environment:
+  #    ZOOKEEPER_CLIENT_PORT: 2181
+  #    ZOOKEEPER_TICK_TIME: 2000
+  #broker:
+  #  image: confluentinc/cp-kafka:7.3.0
+  #  container_name: broker
+  #  ports:
+  #    - "9092:9092"
+  #  depends_on:
+  #    - zookeeper
+  #  environment:
+  #    KAFKA_BROKER_ID: 1
+  #    KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+  #    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+  #    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+  #    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: n5_api
+    ports:
+      - "44321:80"
+    restart: on-failure
+    depends_on:
+      - mssql
+    environment:
+      # ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__DefaultConnection: "Server=mssql;Database=master;User=sa;Password=[vY5mKg=k9DYW3r*;Encrypt=False;"
+    tty: true
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: n5_frontend
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend/src:/frontend/src
+      - /frontend/node_modules
